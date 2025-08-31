@@ -3,8 +3,8 @@
   publish = ".next"
 
 [build.environment]
-  # Disable sensitive data detection for Next.js public env vars
-  NEXT_PRIVATE_SENSITIVE_DATA_DETECTION = "false"
+  # Configure secrets scanning to ignore Next.js public env vars
+  SECRETS_SCAN_OMIT_KEYS = "NEXT_PUBLIC_CONVEX_URL"
 
 # Next.js runtime configuration
 [[plugins]]
