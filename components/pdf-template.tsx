@@ -1,0 +1,338 @@
+import React from "react"
+import { Document, Page, Text, View, StyleSheet, Font } from "@react-pdf/renderer"
+import { type FlightSegment } from "@/lib/providers/aerodatabox"
+
+interface ItineraryData {
+  id: string
+  passengers: Array<{
+    name: string
+    type: "adult" | "child" | "infant"
+  }>
+  segments: FlightSegment[]
+  createdAt: string
+}
+
+interface PDFTemplateProps {
+  itinerary: ItineraryData
+}
+
+const styles = StyleSheet.create({
+  page: {
+    flexDirection: "column",
+    backgroundColor: "#FFFFFF",
+    padding: 30,
+    fontSize: 10,
+    fontFamily: "Helvetica",
+  },
+  header: {
+    marginBottom: 30,
+    borderBottom: "2 solid #2563EB",
+    paddingBottom: 15,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "#1F2937",
+    textAlign: "center",
+    marginBottom: 10,
+  },
+  subtitle: {
+    fontSize: 12,
+    color: "#6B7280",
+    textAlign: "center",
+  },
+  sectionTitle: {
+    fontSize: 14,
+    fontWeight: "bold",
+    color: "#1F2937",
+    marginTop: 20,
+    marginBottom: 10,
+    borderBottom: "1 solid #E5E7EB",
+    paddingBottom: 5,
+  },
+  infoGrid: {
+    flexDirection: "row",
+    marginBottom: 20,
+  },
+  infoColumn: {
+    flex: 1,
+    marginRight: 20,
+  },
+  infoRow: {
+    flexDirection: "row",
+    marginBottom: 5,
+  },
+  infoLabel: {
+    fontWeight: "bold",
+    width: 80,
+    color: "#374151",
+  },
+  infoValue: {
+    color: "#1F2937",
+    flex: 1,
+  },
+  passengersContainer: {
+    marginBottom: 20,
+  },
+  passengerRow: {
+    flexDirection: "row",
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+    borderBottom: "0.5 solid #F3F4F6",
+  },
+  passengerName: {
+    flex: 1,
+    fontWeight: "bold",
+  },
+  passengerType: {
+    width: 60,
+    textAlign: "right",
+    textTransform: "capitalize",
+    color: "#6B7280",
+  },
+  segmentContainer: {
+    marginBottom: 15,
+    border: "1 solid #E5E7EB",
+    borderRadius: 4,
+    padding: 15,
+  },
+  segmentHeader: {
+    flexDirection: "row",
+    marginBottom: 10,
+    alignItems: "center",
+  },
+  flightNumber: {
+    fontSize: 12,
+    fontWeight: "bold",
+    color: "#2563EB",
+  },
+  airline: {
+    fontSize: 10,
+    color: "#6B7280",
+    marginLeft: 10,
+  },
+  status: {
+    marginLeft: "auto",
+    backgroundColor: "#F3F4F6",
+    padding: "3 8",
+    borderRadius: 12,
+    fontSize: 8,
+    textTransform: "uppercase",
+    fontWeight: "bold",
+  },
+  routeContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 8,
+  },
+  airportInfo: {
+    flex: 1,
+  },
+  airportCode: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#1F2937",
+  },
+  airportName: {
+    fontSize: 9,
+    color: "#6B7280",
+    marginTop: 2,
+  },
+  timeInfo: {
+    marginTop: 5,
+  },
+  scheduledTime: {
+    fontSize: 10,
+    fontWeight: "bold",
+    color: "#1F2937",
+  },
+  actualTime: {
+    fontSize: 9,
+    color: "#2563EB",
+    marginTop: 1,
+  },
+  terminalGate: {
+    fontSize: 8,
+    color: "#6B7280",
+    marginTop: 2,
+  },
+  arrow: {
+    alignSelf: "center",
+    color: "#6B7280",
+    fontSize: 12,
+  },
+  aircraftInfo: {
+    fontSize: 9,
+    color: "#6B7280",
+    marginTop: 5,
+  },
+  codeshares: {
+    fontSize: 8,
+    color: "#6B7280",
+    marginTop: 5,
+    fontStyle: "italic",
+  },
+  footer: {
+    marginTop: "auto",
+    paddingTop: 20,
+    borderTop: "1 solid #E5E7EB",
+    textAlign: "center",
+  },
+  disclaimer: {
+    fontSize: 9,
+    color: "#DC2626",
+    fontWeight: "bold",
+    textAlign: "center",
+    backgroundColor: "#FEF2F2",
+    padding: 10,
+    borderRadius: 4,
+    border: "1 solid #FECACA",
+  },
+  generatedInfo: {
+    fontSize: 8,
+    color: "#9CA3AF",
+    marginTop: 10,
+    textAlign: "center",
+  },
+})
+
+export function PDFTemplate({ itinerary }: PDFTemplateProps) {
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    })
+  }
+
+  return (
+    <Document>
+      <Page size="A4" style={styles.page}>
+        {/* Header */}
+        <View style={styles.header}>
+          <Text style={styles.title}>Haske Itinerary</Text>
+          <Text style={styles.subtitle}>Flight Itinerary Summary</Text>
+        </View>
+
+        {/* Trip Information */}
+        <View style={styles.infoGrid}>
+          <View style={styles.infoColumn}>
+            <View style={styles.infoRow}>
+              <Text style={styles.infoLabel}>Itinerary ID:</Text>
+              <Text style={styles.infoValue}>{itinerary.id}</Text>
+            </View>
+            <View style={styles.infoRow}>
+              <Text style={styles.infoLabel}>Created:</Text>
+              <Text style={styles.infoValue}>
+                {formatDate(itinerary.createdAt)}
+              </Text>
+            </View>
+          </View>
+          <View style={styles.infoColumn}>
+            <View style={styles.infoRow}>
+              <Text style={styles.infoLabel}>Passengers:</Text>
+              <Text style={styles.infoValue}>{itinerary.passengers.length}</Text>
+            </View>
+            <View style={styles.infoRow}>
+              <Text style={styles.infoLabel}>Segments:</Text>
+              <Text style={styles.infoValue}>{itinerary.segments.length}</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Passengers */}
+        <Text style={styles.sectionTitle}>Passengers</Text>
+        <View style={styles.passengersContainer}>
+          {itinerary.passengers.map((passenger, index) => (
+            <View key={index} style={styles.passengerRow}>
+              <Text style={styles.passengerName}>{passenger.name}</Text>
+              <Text style={styles.passengerType}>{passenger.type}</Text>
+            </View>
+          ))}
+        </View>
+
+        {/* Flight Segments */}
+        <Text style={styles.sectionTitle}>Flight Segments</Text>
+        {itinerary.segments.map((segment, index) => (
+          <View key={index} style={styles.segmentContainer}>
+            <View style={styles.segmentHeader}>
+              <Text style={styles.flightNumber}>{segment.flightNumber}</Text>
+              <Text style={styles.airline}>{segment.airline}</Text>
+              <Text style={styles.status}>{segment.status}</Text>
+            </View>
+            
+            <View style={styles.routeContainer}>
+              <View style={styles.airportInfo}>
+                <Text style={styles.airportCode}>{segment.departure.code}</Text>
+                <Text style={styles.airportName}>{segment.departure.airport}</Text>
+                <View style={styles.timeInfo}>
+                  <Text style={styles.scheduledTime}>
+                    {segment.departure.scheduledTime}
+                  </Text>
+                  {segment.departure.actualTime && 
+                   segment.departure.actualTime !== segment.departure.scheduledTime && (
+                    <Text style={styles.actualTime}>
+                      Actual: {segment.departure.actualTime}
+                    </Text>
+                  )}
+                  {(segment.departure.terminal || segment.departure.gate) && (
+                    <Text style={styles.terminalGate}>
+                      {segment.departure.terminal && `Terminal ${segment.departure.terminal}`}
+                      {segment.departure.gate && ` • Gate ${segment.departure.gate}`}
+                    </Text>
+                  )}
+                </View>
+              </View>
+              
+              <Text style={styles.arrow}>→</Text>
+              
+              <View style={styles.airportInfo}>
+                <Text style={styles.airportCode}>{segment.arrival.code}</Text>
+                <Text style={styles.airportName}>{segment.arrival.airport}</Text>
+                <View style={styles.timeInfo}>
+                  <Text style={styles.scheduledTime}>
+                    {segment.arrival.scheduledTime}
+                  </Text>
+                  {segment.arrival.actualTime && 
+                   segment.arrival.actualTime !== segment.arrival.scheduledTime && (
+                    <Text style={styles.actualTime}>
+                      Actual: {segment.arrival.actualTime}
+                    </Text>
+                  )}
+                  {(segment.arrival.terminal || segment.arrival.gate) && (
+                    <Text style={styles.terminalGate}>
+                      {segment.arrival.terminal && `Terminal ${segment.arrival.terminal}`}
+                      {segment.arrival.gate && ` • Gate ${segment.arrival.gate}`}
+                    </Text>
+                  )}
+                </View>
+              </View>
+            </View>
+
+            {segment.aircraft && (
+              <Text style={styles.aircraftInfo}>Aircraft: {segment.aircraft}</Text>
+            )}
+            
+            {segment.codeshares && segment.codeshares.length > 0 && (
+              <Text style={styles.codeshares}>
+                Codeshare flights: {segment.codeshares.join(", ")}
+              </Text>
+            )}
+          </View>
+        ))}
+
+        {/* Footer */}
+        <View style={styles.footer}>
+          <Text style={styles.disclaimer}>
+            This itinerary is informational and not a travel document.
+          </Text>
+          <Text style={styles.generatedInfo}>
+            Generated by Haske Itinerary • {formatDate(new Date().toISOString())}
+          </Text>
+        </View>
+      </Page>
+    </Document>
+  )
+}
