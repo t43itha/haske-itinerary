@@ -26,10 +26,11 @@ export interface FlightSegment {
 }
 
 interface AeroDataBoxResponse {
-  flightNumber: string
+  number: string
   airline: {
     name: string
     iata: string
+    icao: string
   }
   aircraft?: {
     model: string
@@ -38,9 +39,16 @@ interface AeroDataBoxResponse {
     airport: {
       name: string
       iata: string
+      shortName: string
     }
-    scheduledTimeUtc: string
-    actualTimeUtc?: string
+    scheduledTime: {
+      utc: string
+      local: string
+    }
+    actualTime?: {
+      utc: string
+      local: string
+    }
     terminal?: string
     gate?: string
   }
@@ -48,9 +56,20 @@ interface AeroDataBoxResponse {
     airport: {
       name: string
       iata: string
+      shortName: string
     }
-    scheduledTimeUtc: string
-    actualTimeUtc?: string
+    scheduledTime: {
+      utc: string
+      local: string
+    }
+    actualTime?: {
+      utc: string
+      local: string
+    }
+    predictedTime?: {
+      utc: string
+      local: string
+    }
     terminal?: string
     gate?: string
   }
@@ -64,14 +83,19 @@ interface AeroDataBoxResponse {
   }>
 }
 
-function formatFlightTime(utcTime: string, timezone: string): string {
+function formatFlightTime(utcTime: string | undefined, timezone: string): string {
+  if (!utcTime) {
+    // Return a placeholder if no time is provided
+    return 'Time TBA'
+  }
+  
   try {
     // For simplicity, we'll just format the UTC time
     // In production, you'd use a proper timezone library like date-fns-tz
     return format(parseISO(utcTime), 'yyyy-MM-dd HH:mm')
   } catch {
-    // Fallback to the original string if parsing fails
-    return utcTime
+    // Fallback to the original string if parsing fails, or placeholder if empty
+    return utcTime || 'Time TBA'
   }
 }
 
@@ -134,6 +158,19 @@ function getTimezoneForAirport(airportCode: string): string {
 }
 
 function normalizeFlightData(data: AeroDataBoxResponse): FlightSegment {
+  // Validate minimum required fields
+  if (!data.airline?.name || !data.number) {
+    throw new Error('Invalid flight data: missing airline or flight number')
+  }
+
+  if (!data.departure?.airport?.name || !data.departure?.airport?.iata) {
+    throw new Error('Invalid flight data: missing departure airport information')
+  }
+
+  if (!data.arrival?.airport?.name || !data.arrival?.airport?.iata) {
+    throw new Error('Invalid flight data: missing arrival airport information')
+  }
+
   const departureTimezone = getTimezoneForAirport(data.departure.airport.iata)
   const arrivalTimezone = getTimezoneForAirport(data.arrival.airport.iata)
   
@@ -143,14 +180,14 @@ function normalizeFlightData(data: AeroDataBoxResponse): FlightSegment {
 
   return {
     airline: data.airline.name,
-    flightNumber: data.flightNumber,
+    flightNumber: data.number,
     aircraft: data.aircraft?.model,
     departure: {
       airport: data.departure.airport.name,
       code: data.departure.airport.iata,
-      scheduledTime: formatFlightTime(data.departure.scheduledTimeUtc, departureTimezone),
-      actualTime: data.departure.actualTimeUtc 
-        ? formatFlightTime(data.departure.actualTimeUtc, departureTimezone)
+      scheduledTime: formatFlightTime(data.departure.scheduledTime?.utc, departureTimezone),
+      actualTime: data.departure.actualTime?.utc 
+        ? formatFlightTime(data.departure.actualTime.utc, departureTimezone)
         : undefined,
       terminal: data.departure.terminal,
       gate: data.departure.gate,
@@ -158,14 +195,14 @@ function normalizeFlightData(data: AeroDataBoxResponse): FlightSegment {
     arrival: {
       airport: data.arrival.airport.name,
       code: data.arrival.airport.iata,
-      scheduledTime: formatFlightTime(data.arrival.scheduledTimeUtc, arrivalTimezone),
-      actualTime: data.arrival.actualTimeUtc 
-        ? formatFlightTime(data.arrival.actualTimeUtc, arrivalTimezone)
+      scheduledTime: formatFlightTime(data.arrival.scheduledTime?.utc, arrivalTimezone),
+      actualTime: (data.arrival.actualTime?.utc || data.arrival.predictedTime?.utc)
+        ? formatFlightTime(data.arrival.actualTime?.utc || data.arrival.predictedTime?.utc, arrivalTimezone)
         : undefined,
       terminal: data.arrival.terminal,
       gate: data.arrival.gate,
     },
-    status: data.status,
+    status: data.status || 'Unknown',
     codeshares: codeshares.length > 0 ? codeshares : undefined,
   }
 }
@@ -201,11 +238,27 @@ export async function getByFlightNoDate(
 
     const data: AeroDataBoxResponse[] = await response.json()
     
+    // Log the raw API response for debugging
+    console.log(`API Response for ${flightNo}:`, JSON.stringify(data, null, 2))
+    
     if (!data || data.length === 0) {
       throw new Error(`No flight data found for ${flightNo} on ${date}`)
     }
 
-    return data.map(normalizeFlightData)
+    // Filter out any invalid flight data and log what we're processing
+    const validFlights = data.filter(flight => {
+      if (!flight.airline?.name || !flight.number) {
+        console.warn(`Skipping invalid flight data for ${flightNo}:`, flight)
+        return false
+      }
+      return true
+    })
+
+    if (validFlights.length === 0) {
+      throw new Error(`No valid flight data found for ${flightNo} on ${date} - API returned incomplete data`)
+    }
+
+    return validFlights.map(normalizeFlightData)
   } catch (error) {
     if (error instanceof Error) {
       throw error

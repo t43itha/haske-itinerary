@@ -24,19 +24,33 @@ export async function searchFlights(formData: FormData) {
     // Fetch flight data for all flight numbers
     const segmentPromises = validatedData.flightNumbers.map(async (flightNo) => {
       try {
-        return await getByFlightNoDate(flightNo, validatedData.travelDate)
+        const segments = await getByFlightNoDate(flightNo, validatedData.travelDate)
+        return { flightNo, segments, success: true }
       } catch (error) {
         console.error(`Error fetching flight ${flightNo}:`, error)
-        // Return empty array for failed flights rather than failing entire request
-        return []
+        return { 
+          flightNo, 
+          segments: [], 
+          success: false, 
+          error: error instanceof Error ? error.message : 'Unknown error' 
+        }
       }
     })
 
     const segmentResults = await Promise.all(segmentPromises)
-    const allSegments = segmentResults.flat()
+    const allSegments = segmentResults.flatMap(result => result.segments)
+    const failedFlights = segmentResults.filter(result => !result.success)
 
+    // Provide detailed error messages
     if (allSegments.length === 0) {
-      throw new Error("No flight data found for the specified flights")
+      const errorMessages = failedFlights.map(f => `${f.flightNo}: ${f.error}`).join('; ')
+      throw new Error(`No flight data found. Errors: ${errorMessages}`)
+    }
+
+    // Warn about partial failures but continue
+    if (failedFlights.length > 0 && allSegments.length > 0) {
+      const failedFlightNumbers = failedFlights.map(f => f.flightNo).join(', ')
+      console.warn(`Some flights could not be fetched: ${failedFlightNumbers}`)
     }
 
     // Save to Convex
@@ -48,6 +62,13 @@ export async function searchFlights(formData: FormData) {
     // Redirect to confirmation page
     redirect(`/confirmation/${itineraryId}`)
   } catch (error) {
+    // Allow Next.js redirects to pass through
+    if (error && typeof error === 'object' && 'digest' in error && 
+        typeof (error as any).digest === 'string' && 
+        (error as any).digest.startsWith('NEXT_REDIRECT')) {
+      throw error
+    }
+    
     console.error("Flight search error:", error)
     throw new Error(
       error instanceof Error ? error.message : "Failed to search flights"

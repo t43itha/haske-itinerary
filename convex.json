@@ -1,8 +1,8 @@
 {
   "projectSlug": "haske-itinerary",
-  "functions": "convex/",
-  "generateCommonJSApi": false,
   "node": {
-    "externalPackages": ["@react-pdf/renderer"]
+    "externalPackages": [
+      "@react-pdf/renderer"
+    ]
   }
 }
