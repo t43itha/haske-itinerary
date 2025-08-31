@@ -1,0 +1,15 @@
+[build]
+  command = "npm run build"
+  publish = ".next"
+
+[build.environment]
+  # Disable sensitive data detection for Next.js public env vars
+  NEXT_PRIVATE_SENSITIVE_DATA_DETECTION = "false"
+
+# Next.js runtime configuration
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+
+[functions]
+  # Increase timeout for PDF generation
+  "*" = { timeout = 30 }
