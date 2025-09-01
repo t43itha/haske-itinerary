@@ -208,10 +208,11 @@ export function extractWaypoints(text: string, cityIataMap: Map<string, string>)
         
         // Try city-IATA map if still not found
         if (!location) {
-          for (const [mapCity, iata] of cityIataMap.entries()) {
+          const cities = Array.from(cityIataMap.keys());
+          for (const mapCity of cities) {
             if (cleanCity.includes(mapCity.toLowerCase()) || 
                 mapCity.toLowerCase().includes(cleanCity)) {
-              location = iata;
+              location = cityIataMap.get(mapCity)!;
               break;
             }
           }

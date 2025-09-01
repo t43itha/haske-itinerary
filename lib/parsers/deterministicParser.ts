@@ -52,7 +52,7 @@ export async function parseWithDeterministicPreprocessing(
       const passengerMatch = rawText.match(/Ernest Thompson|Thompson.*Ernest/i);
       const passenger = passengerMatch ? 'Ernest Thompson' : undefined;
       
-      const ticket = convertToTicket(segments, bookingRef, passenger);
+      const ticket = convertToTicket(segments, bookingRef, passenger, rawText);
       
       return {
         ticket,

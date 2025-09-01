@@ -109,7 +109,7 @@ export function extractSAASegments(text: string): FlightSegment[] {
 /**
  * Convert to ParsedTicket format
  */
-export function convertToTicket(segments: FlightSegment[], bookingRef?: string, passenger?: string): ParsedTicket {
+export function convertToTicket(segments: FlightSegment[], bookingRef?: string, passenger?: string, rawText?: string): ParsedTicket {
   const ticket: ParsedTicket = {
     carrier: 'SA',
     airlineLocator: bookingRef || '9E4C8J', // From PDF
@@ -121,7 +121,8 @@ export function convertToTicket(segments: FlightSegment[], bookingRef?: string, 
       type: 'ADT'
     }],
     segments: [],
-    baggage: '2 x 23kg'
+    baggage: '2 x 23kg',
+    raw: { text: rawText || '' }
   };
   
   // Convert segments with proper dates
