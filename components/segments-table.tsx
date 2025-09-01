@@ -8,6 +8,22 @@ interface SegmentsTableProps {
   segments: FlightSegment[]
 }
 
+function formatFlightTime(timeString: string) {
+  try {
+    const date = new Date(timeString)
+    return date.toLocaleString("en-US", {
+      weekday: "short",
+      month: "short", 
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+    })
+  } catch (error) {
+    return timeString // Fallback to original string if parsing fails
+  }
+}
+
 function getStatusVariant(status: string) {
   switch (status.toLowerCase()) {
     case "scheduled":
@@ -70,12 +86,12 @@ export function SegmentsTable({ segments }: SegmentsTableProps) {
                         {segment.departure.airport}
                       </div>
                       <div className="text-sm font-mono">
-                        {segment.departure.scheduledTime}
+                        {formatFlightTime(segment.departure.scheduledTime)}
                       </div>
                       {segment.departure.actualTime && 
                        segment.departure.actualTime !== segment.departure.scheduledTime && (
                         <div className="text-xs text-blue-600">
-                          Actual: {segment.departure.actualTime}
+                          Actual: {formatFlightTime(segment.departure.actualTime)}
                         </div>
                       )}
                       <div className="text-xs text-gray-500">
@@ -92,12 +108,12 @@ export function SegmentsTable({ segments }: SegmentsTableProps) {
                         {segment.arrival.airport}
                       </div>
                       <div className="text-sm font-mono">
-                        {segment.arrival.scheduledTime}
+                        {formatFlightTime(segment.arrival.scheduledTime)}
                       </div>
                       {segment.arrival.actualTime && 
                        segment.arrival.actualTime !== segment.arrival.scheduledTime && (
                         <div className="text-xs text-blue-600">
-                          Actual: {segment.arrival.actualTime}
+                          Actual: {formatFlightTime(segment.arrival.actualTime)}
                         </div>
                       )}
                       <div className="text-xs text-gray-500">
