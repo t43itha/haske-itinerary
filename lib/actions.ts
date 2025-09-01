@@ -87,3 +87,29 @@ export async function getItinerary(id: string) {
     return null
   }
 }
+
+export async function createItineraryFromParsedTicket(
+  normalizedItinerary: any, // NormalizedItinerary type from normalizeTicket.ts
+  selectedFields: string[] = [] // Fields that user selected to apply
+): Promise<string> {
+  try {
+    console.log('Creating itinerary from parsed ticket data...')
+    
+    // Create itinerary with normalized data
+    const itineraryId = await convex.mutation(api.itineraries.create, {
+      passengers: normalizedItinerary.passengers,
+      segments: normalizedItinerary.segments,
+      bookingExtras: normalizedItinerary.bookingExtras,
+    })
+
+    console.log('Itinerary created successfully:', itineraryId)
+    
+    // Return the ID for client-side navigation
+    return itineraryId
+  } catch (error) {
+    console.error("Create itinerary error:", error)
+    throw new Error(
+      error instanceof Error ? error.message : "Failed to create itinerary"
+    )
+  }
+}
