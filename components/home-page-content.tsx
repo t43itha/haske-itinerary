@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import { Upload, Plane } from "lucide-react"
+import { Upload } from "lucide-react"
 import { FlightSearchForm } from "@/components/flight-search-form"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -44,7 +44,7 @@ export function HomePageContent({ onSubmit }: HomePageContentProps) {
         </div>
 
         {/* Import Options */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        <div className="grid grid-cols-1 gap-6 mb-8">
           <Card className="border-2 border-dashed border-blue-200 hover:border-blue-300 transition-colors">
             <CardHeader className="text-center">
               <CardTitle className="flex items-center justify-center gap-2">
@@ -61,25 +61,6 @@ export function HomePageContent({ onSubmit }: HomePageContentProps) {
                   Import E-Ticket
                 </Button>
               </Link>
-            </CardContent>
-          </Card>
-
-          <Card className="border-2 border-gray-200">
-            <CardHeader className="text-center">
-              <CardTitle className="flex items-center justify-center gap-2">
-                <Plane className="w-5 h-5" />
-                Manual Entry
-              </CardTitle>
-              <CardDescription>
-                Search for flights manually and create your itinerary step by step
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="text-center">
-              <Button variant="outline" size="lg" className="w-full" onClick={() => {
-                document.getElementById('manual-form')?.scrollIntoView({ behavior: 'smooth' })
-              }}>
-                Enter Manually
-              </Button>
             </CardContent>
           </Card>
         </div>
