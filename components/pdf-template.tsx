@@ -5,12 +5,36 @@ import { getHaskeLogo } from "@/lib/logo"
 
 interface ItineraryData {
   id: string
+  humanId?: string
   passengers: Array<{
     name: string
     type: "adult" | "child" | "infant"
   }>
   segments: FlightSegment[]
   createdAt: string
+  bookingExtras?: {
+    airlineLocator?: string
+    iataNumber?: string
+    ticketNumbers?: Array<{
+      number: string
+      passengerName: string
+      validUntil?: string
+    }>
+    baggage?: string
+    handBaggage?: string
+    fareDetails?: {
+      baseFare?: number
+      currency?: string
+      carrierCharges?: number
+      taxes?: Array<{
+        type: string
+        amount: number
+        description?: string
+      }>
+      total?: number
+    }
+    fareNotes?: string
+  }
 }
 
 interface PDFTemplateProps {
@@ -228,7 +252,7 @@ export function PDFTemplate({ itinerary }: PDFTemplateProps) {
           <View style={styles.infoColumn}>
             <View style={styles.infoRow}>
               <Text style={styles.infoLabel}>Itinerary ID:</Text>
-              <Text style={styles.infoValue}>{itinerary.id}</Text>
+              <Text style={styles.infoValue}>{itinerary.humanId || itinerary.id}</Text>
             </View>
             <View style={styles.infoRow}>
               <Text style={styles.infoLabel}>Created:</Text>
@@ -236,6 +260,12 @@ export function PDFTemplate({ itinerary }: PDFTemplateProps) {
                 {formatDate(itinerary.createdAt)}
               </Text>
             </View>
+            {itinerary.bookingExtras?.airlineLocator && (
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>Booking Ref:</Text>
+                <Text style={styles.infoValue}>{itinerary.bookingExtras.airlineLocator}</Text>
+              </View>
+            )}
           </View>
           <View style={styles.infoColumn}>
             <View style={styles.infoRow}>
@@ -246,6 +276,12 @@ export function PDFTemplate({ itinerary }: PDFTemplateProps) {
               <Text style={styles.infoLabel}>Segments:</Text>
               <Text style={styles.infoValue}>{itinerary.segments.length}</Text>
             </View>
+            {itinerary.bookingExtras?.iataNumber && (
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>IATA:</Text>
+                <Text style={styles.infoValue}>{itinerary.bookingExtras.iataNumber}</Text>
+              </View>
+            )}
           </View>
         </View>
 
@@ -327,8 +363,70 @@ export function PDFTemplate({ itinerary }: PDFTemplateProps) {
                 Codeshare flights: {segment.codeshares.join(", ")}
               </Text>
             )}
+            
+            {(segment as any).cabin && (
+              <Text style={styles.aircraftInfo}>Cabin: {(segment as any).cabin}</Text>
+            )}
           </View>
         ))}
+
+        {/* Booking Extras */}
+        {itinerary.bookingExtras && (
+          <View>
+            {/* Ticket Information */}
+            {itinerary.bookingExtras.ticketNumbers && itinerary.bookingExtras.ticketNumbers.length > 0 && (
+              <>
+                <Text style={styles.sectionTitle}>Ticket Information</Text>
+                <View style={styles.passengersContainer}>
+                  {itinerary.bookingExtras.ticketNumbers.map((ticket, index) => (
+                    <View key={index} style={styles.passengerRow}>
+                      <Text style={styles.passengerName}>{ticket.passengerName}</Text>
+                      <Text style={styles.infoValue}>{ticket.number}</Text>
+                      {ticket.validUntil && (
+                        <Text style={styles.passengerType}>Valid until {ticket.validUntil}</Text>
+                      )}
+                    </View>
+                  ))}
+                </View>
+              </>
+            )}
+
+            {/* Baggage Information */}
+            {(itinerary.bookingExtras.baggage || itinerary.bookingExtras.handBaggage) && (
+              <>
+                <Text style={styles.sectionTitle}>Baggage Allowance</Text>
+                <View style={styles.infoGrid}>
+                  {itinerary.bookingExtras.baggage && (
+                    <View style={styles.infoColumn}>
+                      <View style={styles.infoRow}>
+                        <Text style={styles.infoLabel}>Checked:</Text>
+                        <Text style={styles.infoValue}>{itinerary.bookingExtras.baggage}</Text>
+                      </View>
+                    </View>
+                  )}
+                  {itinerary.bookingExtras.handBaggage && (
+                    <View style={styles.infoColumn}>
+                      <View style={styles.infoRow}>
+                        <Text style={styles.infoLabel}>Hand:</Text>
+                        <Text style={styles.infoValue}>{itinerary.bookingExtras.handBaggage}</Text>
+                      </View>
+                    </View>
+                  )}
+                </View>
+              </>
+            )}
+
+            {/* Fare Information intentionally omitted */}
+
+            {/* Fare Notes */}
+            {itinerary.bookingExtras.fareNotes && (
+              <>
+                <Text style={styles.sectionTitle}>Fare Conditions</Text>
+                <Text style={styles.aircraftInfo}>{itinerary.bookingExtras.fareNotes}</Text>
+              </>
+            )}
+          </View>
+        )}
 
         {/* Footer */}
         <View style={styles.footer}>

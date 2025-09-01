@@ -69,6 +69,10 @@ export default async function ConfirmationPage({ params }: ConfirmationPageProps
             <CardContent>
               <div className="space-y-3">
                 <div className="flex justify-between">
+                  <span className="text-gray-600">Itinerary ID:</span>
+                  <span className="font-medium">{(itinerary as any).humanId || itinerary._id}</span>
+                </div>
+                <div className="flex justify-between">
                   <span className="text-gray-600">Created:</span>
                   <span className="font-medium">
                     {new Date(itinerary.createdAt).toLocaleDateString()}

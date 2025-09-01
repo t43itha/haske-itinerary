@@ -35,7 +35,8 @@ export async function GET(
 
     // Create filename based on itinerary details
     const firstSegment = itinerary.segments[0]
-    const filename = `haske-itinerary-${firstSegment?.flightNumber || params.id}.pdf`
+    const displayId = (itinerary as any).humanId || params.id
+    const filename = `haske-itinerary-${firstSegment?.flightNumber || displayId}.pdf`
 
     // Return PDF response
     return new NextResponse(new Uint8Array(pdfBuffer), {
