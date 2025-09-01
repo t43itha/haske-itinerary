@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useRouter, useSearchParams } from "next/navigation"
+import { useRouter } from "next/navigation"
 import { Check, X, ArrowLeft, Save, AlertTriangle } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -23,7 +23,6 @@ interface FieldChange {
 
 export default function ReviewPage() {
   const router = useRouter()
-  const searchParams = useSearchParams()
   const [parsedData, setParsedData] = useState<ParsedTicket | null>(null)
   const [currentItinerary, setCurrentItinerary] = useState<NormalizedItinerary | null>(null)
   const [fieldChanges, setFieldChanges] = useState<FieldChange[]>([])
