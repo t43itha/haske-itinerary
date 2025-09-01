@@ -3,8 +3,8 @@
   publish = ".next"
 
 [build.environment]
-  # Configure secrets scanning to ignore Next.js public env vars
-  SECRETS_SCAN_OMIT_KEYS = "NEXT_PUBLIC_CONVEX_URL"
+  # Configure secrets scanning to ignore Next.js public env vars and LLM model names
+  SECRETS_SCAN_OMIT_KEYS = "NEXT_PUBLIC_CONVEX_URL,LLM_MODEL_CHEAP,LLM_MODEL_BURST,LLM_PROVIDER"
 
 # Next.js runtime configuration
 [[plugins]]
