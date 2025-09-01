@@ -279,7 +279,7 @@ export default function IngestPage() {
         {/* Process Button */}
         <div className="text-center mb-8">
           <Button
-            onClick={processTicket}
+            onClick={() => void processTicket()}
             disabled={isProcessing || !file}
             size="lg"
             className="px-8"
