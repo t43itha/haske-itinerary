@@ -3,10 +3,11 @@ import { ParseInput } from './index';
 import { extractTicket } from '../llm/extractTicket';
 import { recordTokenUsage, generateExtractionId } from '../llm/tokenTracking';
 import { isGroqConfigured } from '../llm/client';
+import { parseWithDeterministicPreprocessing } from './deterministicParser';
 
 // Common airline lexicon and patterns for post-processing
 const AIRLINE_CODES = [
-  'BA', 'AF', 'KL', 'LH', 'VS', 'AA', 'DL', 'UA', 'EK', 'QR', 'SQ', 'CX'
+  'BA', 'AF', 'KL', 'LH', 'VS', 'AA', 'DL', 'UA', 'EK', 'QR', 'SQ', 'CX', 'SA'
 ];
 
 const IATA_AIRPORTS = {
@@ -30,10 +31,45 @@ export async function parseGeneric(input: ParseInput, carrierHint?: string): Pro
   }
 
   try {
-    const extractionId = generateExtractionId();
     const detectedCarrier = carrierHint || detectCarrier(input);
     
-    console.log('Starting generic parser with Groq extraction:', { 
+    console.log('Starting generic parser with deterministic preprocessing v2:', { 
+      carrierHint: detectedCarrier,
+      timestamp: new Date().toISOString()
+    });
+    
+    // FIRST: Try deterministic preprocessing with optional LLM enhancement
+    // This reduces reliance on LLM for complex multi-segment extraction
+    console.log('Attempting deterministic preprocessing...');
+    try {
+      const deterministicResult = await parseWithDeterministicPreprocessing(
+        input.text || '',
+        true // Allow LLM enhancement for missing fields only
+      );
+      
+      console.log('Deterministic preprocessing completed:', {
+        segments: deterministicResult.preprocessedSegments.length,
+        llmEnhanced: deterministicResult.llmEnhanced,
+        confidence: deterministicResult.confidence
+      });
+      
+      // If confidence is high enough, use the result
+      if (deterministicResult.confidence > 70) {
+        const finalTicket = postProcessTicket(deterministicResult.ticket, input);
+        console.log('Using deterministic result with confidence:', deterministicResult.confidence);
+        return finalTicket;
+      }
+      
+      console.log('Deterministic confidence too low:', deterministicResult.confidence, ', falling back to full LLM extraction');
+    } catch (deterministicError) {
+      console.warn('Deterministic preprocessing failed:', deterministicError);
+      // Continue to full LLM extraction
+    }
+    
+    // FALLBACK: Full LLM extraction if deterministic approach fails or has low confidence
+    const extractionId = generateExtractionId();
+    
+    console.log('Falling back to full LLM extraction:', { 
       extractionId, 
       carrierHint: detectedCarrier 
     });
@@ -46,7 +82,7 @@ export async function parseGeneric(input: ParseInput, carrierHint?: string): Pro
       detectedCarrier || undefined // Pass carrier hint to AI
     );
     
-    console.log('Groq extraction completed:', {
+    console.log('LLM extraction completed:', {
       extractionId,
       carrier: detectedCarrier,
       model: extractionResult.tokenUsage.model,
@@ -63,7 +99,7 @@ export async function parseGeneric(input: ParseInput, carrierHint?: string): Pro
     
     return postProcessTicket(extractionResult.result, input);
   } catch (error) {
-    console.error('Groq extraction failed, falling back to basic parsing:', error);
+    console.error('All extraction methods failed, falling back to basic parsing:', error);
     return parseBasic(input);
   }
 }
@@ -107,6 +143,13 @@ function detectCarrier(input: ParseInput): string | null {
       content.includes('virgin-atlantic.') ||
       /vs\d{3,4}/.test(content)) {
     return 'VS';
+  }
+  
+  // South African Airways
+  if (content.includes('south african airways') || 
+      content.includes('flysaa.com') ||
+      /\bsa\s?\d{3,4}/i.test(content)) {
+    return 'SA';
   }
   
   return null;

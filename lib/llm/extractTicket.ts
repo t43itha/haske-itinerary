@@ -127,6 +127,15 @@ async function extractWithModel(model: string, input: ExtractionInput) {
     throw new Error('Invalid JSON response from LLM');
   }
   
+  // Log raw LLM response for debugging time extraction
+  console.log('Raw LLM response segments:', parsedResponse.segments?.map((s: any) => ({
+    flight: s.marketingFlightNo,
+    depTime: s.dep?.timeLocal,
+    depDate: s.dep?.date,
+    arrTime: s.arr?.timeLocal,
+    arrDate: s.arr?.date
+  })));
+  
   // Validate against schema
   const validatedResponse = LLMPromptResponseSchema.parse(parsedResponse);
   
@@ -204,19 +213,19 @@ EXTRACTION GUIDELINES:
   * If you see "Dear Mr Smith" in greeting but "Passenger: Mr Jones" in booking details, extract "Jones"
 - Remove titles like Mr/Mrs/Ms/Dr from passenger names
 - Find flight numbers in format like BA123, AF456, LH789, etc.
-- Extract dates in various formats and normalize to "DD MMM YYYY" format
-- Extract times in 24-hour format (HH:MM)
 
-DATE AND TIME HANDLING (CRITICAL):
-- For overnight flights: If arrival time is earlier than departure time, the arrival is the NEXT DAY
-  * Example: Depart 22:10 on 30 Aug → Arrive 06:15 = 31 Aug (next day)
-  * Example: Depart 23:45 on 15 Jan → Arrive 05:30 = 16 Jan (next day)
-- If only one date is shown for a flight segment, infer the arrival date using flight logic:
-  * Flights departing after 20:00 and arriving before 10:00 typically arrive the next day
-  * Most commercial flights are under 24 hours, so never add more than 1 day
-  * When times suggest overnight travel, automatically increment the arrival date
-- Time zone considerations: Focus on local times as shown in the ticket
-- ALWAYS apply date logic: departure 22:00 + arrival 07:00 = arrival is next day
+DATE AND TIME EXTRACTION (CRITICAL - READ CAREFULLY):
+- Extract dates and times EXACTLY as they appear in the document - DO NOT MODIFY
+- If the document shows "2030", extract it as "2030" (NOT "20:30")
+- If the document shows "20:30", extract it as "20:30"
+- If the document shows "0425", extract it as "0425" (NOT "04:25")
+- If the document shows "30 Aug 2024", extract it as "30 Aug 2024"
+- If the document shows "30/08/2024", extract it as "30/08/2024"
+- DO NOT normalize, convert, or reformat times or dates
+- DO NOT add colons to military time (keep "2030" as "2030", not "20:30")
+- For multi-segment flights, extract each segment's times EXACTLY as shown
+- If arrival date is missing but departure date is present, leave arrival date empty
+- Focus on EXACT extraction, not interpretation or standardization
 
 - Map cabin classes to standard values when possible
 - Find booking references/confirmation codes (usually 6 alphanumeric characters)
@@ -319,9 +328,6 @@ CARRIER: British Airways (BA)
   * BA tickets show passenger name separately from cardholder name
 - Flight numbers are in format "BA" + 3-4 digits (e.g., BA0078, BA1306)
 - Cabin classes: "World Traveller" = Economy, "Euro Traveller" = Economy, "Club World" = Business
-- OVERNIGHT FLIGHTS: BA often has overnight routes (e.g., BA0078 ACC-LHR departs 22:10, arrives 06:15 next day)
-  * Apply date logic: late departure + early arrival = next day arrival
-  * Common overnight routes: West Africa to London, some European routes
 - Extract baggage separately: checked ("2 bags at 23kg") and hand baggage ("1 handbag/laptop bag, plus 1 additional cabin bag")
 - Look for meal service per route: "Meal" for long-haul, "Food and Beverages for Purchase" for short-haul
 - Extract IATA numbers from agency bookings
@@ -335,8 +341,6 @@ CARRIER: Air France (AF)
 - Flight numbers are in format "AF" + 3-4 digits
 - Look for confirmation codes in Air France emails/tickets
 - Cabin classes may include "Economy", "Premium Economy", "Business", "First"
-- OVERNIGHT FLIGHTS: Common on long-haul routes (e.g., Africa-Europe, transatlantic)
-  * Apply date logic for late departures with early arrivals
 - Extract passenger names from booking sections, not payment details
 - Look for baggage allowances and meal service information`;
 
@@ -345,8 +349,6 @@ CARRIER: Air France (AF)
 CARRIER: Lufthansa (LH)
 - Flight numbers are in format "LH" + 3-4 digits
 - Look for confirmation codes in Lufthansa communications
-- OVERNIGHT FLIGHTS: Common on intercontinental routes
-  * Apply date logic for flights crossing time zones with overnight travel
 - Extract passenger names from booking sections, not payment details
 - Look for baggage allowances and meal service information`;
 
@@ -370,8 +372,6 @@ CARRIER: Virgin Atlantic (VS)
       return `
 CARRIER: ${carrier}
 - Look for flight numbers starting with "${carrier}" followed by digits
-- OVERNIGHT FLIGHTS: Apply date logic if departure is late evening and arrival is early morning
-  * Assume arrival is next day when times suggest overnight travel
 - Extract passenger names from booking sections, not payment details
 - Look for baggage allowances and meal service information`;
   }

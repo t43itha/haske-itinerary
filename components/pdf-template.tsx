@@ -2,6 +2,7 @@ import React from "react"
 import { Document, Page, Text, View, StyleSheet, Font, Image } from "@react-pdf/renderer"
 import { type FlightSegment } from "@/lib/providers/aerodatabox"
 import { getHaskeLogo } from "@/lib/logo"
+import { formatFlightTimeWithDate, formatFlightTimeOnly } from "@/lib/utils/timeFormatting"
 
 interface ItineraryData {
   id: string
@@ -252,21 +253,7 @@ export function PDFTemplate({ itinerary }: PDFTemplateProps) {
     })
   }
 
-  const formatFlightTime = (timeString: string) => {
-    try {
-      const date = new Date(timeString)
-      return date.toLocaleString("en-US", {
-        weekday: "short",
-        month: "short",
-        day: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: true,
-      })
-    } catch (error) {
-      return timeString // Fallback to original string if parsing fails
-    }
-  }
+  // Using military time formatting from utils instead of 12-hour format
 
   return (
     <Document>
@@ -344,12 +331,12 @@ export function PDFTemplate({ itinerary }: PDFTemplateProps) {
                 <Text style={styles.airportName}>{segment.departure.airport}</Text>
                 <View style={styles.timeInfo}>
                   <Text style={styles.scheduledTime}>
-                    {formatFlightTime(segment.departure.scheduledTime)}
+                    {formatFlightTimeWithDate(segment.departure.scheduledTime, false)}
                   </Text>
                   {segment.departure.actualTime && 
                    segment.departure.actualTime !== segment.departure.scheduledTime && (
                     <Text style={styles.actualTime}>
-                      Actual: {formatFlightTime(segment.departure.actualTime)}
+                      Actual: {formatFlightTimeWithDate(segment.departure.actualTime, false)}
                     </Text>
                   )}
                   {(segment.departure.terminal || segment.departure.gate) && (
@@ -368,12 +355,12 @@ export function PDFTemplate({ itinerary }: PDFTemplateProps) {
                 <Text style={styles.airportName}>{segment.arrival.airport}</Text>
                 <View style={styles.timeInfo}>
                   <Text style={styles.scheduledTime}>
-                    {formatFlightTime(segment.arrival.scheduledTime)}
+                    {formatFlightTimeWithDate(segment.arrival.scheduledTime, false)}
                   </Text>
                   {segment.arrival.actualTime && 
                    segment.arrival.actualTime !== segment.arrival.scheduledTime && (
                     <Text style={styles.actualTime}>
-                      Actual: {formatFlightTime(segment.arrival.actualTime)}
+                      Actual: {formatFlightTimeWithDate(segment.arrival.actualTime, false)}
                     </Text>
                   )}
                   {(segment.arrival.terminal || segment.arrival.gate) && (

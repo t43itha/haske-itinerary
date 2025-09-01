@@ -3,26 +3,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Plane, Clock } from "lucide-react"
 import { type FlightSegment } from "@/lib/providers/aerodatabox"
+import { formatFlightTimeWithDate, formatFlightTimeOnly } from "@/lib/utils/timeFormatting"
 
 interface SegmentsTableProps {
   segments: FlightSegment[]
 }
 
-function formatFlightTime(timeString: string) {
-  try {
-    const date = new Date(timeString)
-    return date.toLocaleString("en-US", {
-      weekday: "short",
-      month: "short", 
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: true,
-    })
-  } catch (error) {
-    return timeString // Fallback to original string if parsing fails
-  }
-}
+// Removed - now using military time formatting from utils
 
 function getStatusVariant(status: string) {
   switch (status.toLowerCase()) {
@@ -86,12 +73,12 @@ export function SegmentsTable({ segments }: SegmentsTableProps) {
                         {segment.departure.airport}
                       </div>
                       <div className="text-sm font-mono">
-                        {formatFlightTime(segment.departure.scheduledTime)}
+                        {formatFlightTimeWithDate(segment.departure.scheduledTime)}
                       </div>
                       {segment.departure.actualTime && 
                        segment.departure.actualTime !== segment.departure.scheduledTime && (
                         <div className="text-xs text-blue-600">
-                          Actual: {formatFlightTime(segment.departure.actualTime)}
+                          Actual: {formatFlightTimeWithDate(segment.departure.actualTime)}
                         </div>
                       )}
                       <div className="text-xs text-gray-500">
@@ -108,12 +95,12 @@ export function SegmentsTable({ segments }: SegmentsTableProps) {
                         {segment.arrival.airport}
                       </div>
                       <div className="text-sm font-mono">
-                        {formatFlightTime(segment.arrival.scheduledTime)}
+                        {formatFlightTimeWithDate(segment.arrival.scheduledTime)}
                       </div>
                       {segment.arrival.actualTime && 
                        segment.arrival.actualTime !== segment.arrival.scheduledTime && (
                         <div className="text-xs text-blue-600">
-                          Actual: {formatFlightTime(segment.arrival.actualTime)}
+                          Actual: {formatFlightTimeWithDate(segment.arrival.actualTime)}
                         </div>
                       )}
                       <div className="text-xs text-gray-500">

@@ -101,5 +101,12 @@ export function detectCarrier(input: ParseInput): string | null {
     return 'VS';
   }
   
+  // South African Airways
+  if (content.includes('south african airways') || 
+      content.includes('flysaa.com') ||
+      /\bsa\s?\d{3,4}/i.test(content)) {
+    return 'SA';
+  }
+  
   return null;
 }

@@ -11,6 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { ParsedTicket } from "@/lib/types"
 import { normalizeTicketToItinerary, type NormalizedItinerary } from "@/lib/normalizeTicket"
 import { createItineraryFromParsedTicket } from "@/lib/actions"
+import { formatFlightTimeOnly } from "@/lib/utils/timeFormatting"
 
 interface FieldChange {
   field: string;
@@ -106,7 +107,7 @@ export default function ReviewPage() {
             field: `segment-${index}-departure`,
             label: `Flight ${index + 1} Departure`,
             current: null,
-            parsed: `${segment.departure.airport} (${segment.departure.code}) at ${new Date(segment.departure.scheduledTime).toLocaleString()}`,
+            parsed: `${formatFlightTimeOnly(segment.departure.scheduledTime)} ${segment.departure.airport} (${segment.departure.code})`,
             apply: true,
             category: 'segment'
           })
@@ -114,7 +115,7 @@ export default function ReviewPage() {
             field: `segment-${index}-arrival`,
             label: `Flight ${index + 1} Arrival`,
             current: null,
-            parsed: `${segment.arrival.airport} (${segment.arrival.code}) at ${new Date(segment.arrival.scheduledTime).toLocaleString()}`,
+            parsed: `${formatFlightTimeOnly(segment.arrival.scheduledTime)} ${segment.arrival.airport} (${segment.arrival.code})`,
             apply: true,
             category: 'segment'
           })

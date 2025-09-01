@@ -101,4 +101,5 @@ export default defineSchema({
     totalCost: v.number(),
     lastUpdated: v.string(),
   }).index("by_model", ["model"]),
+
 });
