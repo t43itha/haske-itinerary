@@ -70,6 +70,21 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     marginTop: 5,
   },
+  companyInfo: {
+    textAlign: "center",
+    marginTop: 10,
+  },
+  companyName: {
+    fontSize: 14,
+    fontWeight: "bold",
+    color: "#1F2937",
+    marginBottom: 5,
+  },
+  contactLine: {
+    fontSize: 10,
+    color: "#6B7280",
+    marginBottom: 2,
+  },
   sectionTitle: {
     fontSize: 14,
     fontWeight: "bold",
@@ -236,6 +251,22 @@ export function PDFTemplate({ itinerary }: PDFTemplateProps) {
     })
   }
 
+  const formatFlightTime = (timeString: string) => {
+    try {
+      const date = new Date(timeString)
+      return date.toLocaleString("en-US", {
+        weekday: "short",
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true,
+      })
+    } catch (error) {
+      return timeString // Fallback to original string if parsing fails
+    }
+  }
+
   return (
     <Document>
       <Page size="A4" style={styles.page}>
@@ -244,6 +275,12 @@ export function PDFTemplate({ itinerary }: PDFTemplateProps) {
           <View style={styles.brandContainer}>
             <Image src={getHaskeLogo()} style={styles.logo} />
             <Text style={styles.documentTitle}>Flight Itinerary</Text>
+            <View style={styles.companyInfo}>
+              <Text style={styles.companyName}>HASKE GLOBAL TRAVEL</Text>
+              <Text style={styles.contactLine}>www.haskeglobaltravel.com | info@haskeglobaltravel.com</Text>
+              <Text style={styles.contactLine}>+233 535703324 | +442081911882</Text>
+              <Text style={styles.contactLine}>Accra | London | Dubai</Text>
+            </View>
           </View>
         </View>
 
@@ -312,12 +349,12 @@ export function PDFTemplate({ itinerary }: PDFTemplateProps) {
                 <Text style={styles.airportName}>{segment.departure.airport}</Text>
                 <View style={styles.timeInfo}>
                   <Text style={styles.scheduledTime}>
-                    {segment.departure.scheduledTime}
+                    {formatFlightTime(segment.departure.scheduledTime)}
                   </Text>
                   {segment.departure.actualTime && 
                    segment.departure.actualTime !== segment.departure.scheduledTime && (
                     <Text style={styles.actualTime}>
-                      Actual: {segment.departure.actualTime}
+                      Actual: {formatFlightTime(segment.departure.actualTime)}
                     </Text>
                   )}
                   {(segment.departure.terminal || segment.departure.gate) && (
@@ -336,12 +373,12 @@ export function PDFTemplate({ itinerary }: PDFTemplateProps) {
                 <Text style={styles.airportName}>{segment.arrival.airport}</Text>
                 <View style={styles.timeInfo}>
                   <Text style={styles.scheduledTime}>
-                    {segment.arrival.scheduledTime}
+                    {formatFlightTime(segment.arrival.scheduledTime)}
                   </Text>
                   {segment.arrival.actualTime && 
                    segment.arrival.actualTime !== segment.arrival.scheduledTime && (
                     <Text style={styles.actualTime}>
-                      Actual: {segment.arrival.actualTime}
+                      Actual: {formatFlightTime(segment.arrival.actualTime)}
                     </Text>
                   )}
                   {(segment.arrival.terminal || segment.arrival.gate) && (
