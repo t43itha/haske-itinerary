@@ -18,5 +18,7 @@
   included_files = [
     "public/**"               # ensure CSS/fonts/logo are bundled for the function
   ]
-  timeout = 26               # max allowed on Netlify
-  memory = 1536              # give Chromium room
+
+[functions."*"]
+  timeout = 26               # max allowed on Netlify (seconds)
+  memory = 1536              # give Chromium room (MB)
