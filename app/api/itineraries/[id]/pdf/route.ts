@@ -4,27 +4,23 @@ import chromium from "@sparticuz/chromium";
 export const dynamic = "force-dynamic";
 
 async function launchBrowser() {
-  const isNetlify = Boolean(process.env.NETLIFY || process.env.VERCEL || process.env.AWS_REGION);
+  const isServerless = Boolean(process.env.NETLIFY || process.env.AWS_REGION || process.env.VERCEL);
 
-  if (isNetlify) {
+  if (isServerless) {
     const puppeteer = await import("puppeteer-core");
     
-    // Configure chromium args for serverless environment
-    const args = [
-      ...chromium.args,
-      "--disable-gpu",
-      "--disable-dev-shm-usage",
-      "--disable-setuid-sandbox",
-      "--no-first-run",
-      "--no-sandbox",
-      "--no-zygote",
-      "--single-process",
-      "--font-render-hinting=none"
-    ];
+    // Optional: Load fonts for better rendering (safe to fail)
+    await chromium.font(
+      "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
+    ).catch(() => {});
+    
+    // Configure for serverless environment
+    chromium.setHeadlessMode = true;
+    chromium.setGraphicsMode = false;
     
     return puppeteer.launch({
-      args,
-      defaultViewport: { width: 1280, height: 800 },
+      args: [...chromium.args, "--font-render-hinting=none"],
+      defaultViewport: chromium.defaultViewport,
       executablePath: await chromium.executablePath(),
       headless: true,
     });
@@ -49,7 +45,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     const style = reqUrl.searchParams.get("style") || "bleed";   // pass-through for print variations
     const target = new URL(`/itineraries/${params.id}/print?style=${style}`, base).toString();
 
-    console.log(`PDF Generation - Base URL: ${base}, Target: ${target}`);
+    console.log(`PDF Generation - Base URL: ${base}, Target: ${target}, Executable: ${await chromium.executablePath()}`);
 
     let browser;
     try {
