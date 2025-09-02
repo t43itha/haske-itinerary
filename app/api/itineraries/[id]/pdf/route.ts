@@ -10,7 +10,7 @@ async function launchBrowser() {
     const puppeteer = await import("puppeteer-core");
     return puppeteer.launch({
       args: [...chromium.args, "--font-render-hinting=none"],
-      defaultViewport: chromium.defaultViewport,
+      defaultViewport: { width: 1280, height: 800 },
       executablePath: await chromium.executablePath(),
       headless: true,
     });
