@@ -71,7 +71,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       const asAttachment = reqUrl.searchParams.get("dl") === "1";
       const firstSegmentId = params.id.slice(0, 8);
       
-      return new Response(pdf, {
+      return new Response(Buffer.from(pdf), {
         headers: {
           "Content-Type": "application/pdf",
           "Content-Disposition": `${asAttachment ? "attachment" : "inline"}; filename="Haske-Itinerary-${firstSegmentId}.pdf"`,
