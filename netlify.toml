@@ -5,6 +5,8 @@
 [build.environment]
   # Configure secrets scanning to ignore Next.js public env vars and LLM model names
   SECRETS_SCAN_OMIT_KEYS = "NEXT_PUBLIC_CONVEX_URL,LLM_MODEL_CHEAP,LLM_MODEL_BURST,LLM_PROVIDER"
+  NODE_VERSION = "18"
+  CHROMIUM_CHANNEL = "stable"
 
 # Next.js runtime configuration
 [[plugins]]
@@ -13,3 +15,5 @@
 [functions]
   # Increase timeout for PDF generation
   "*" = { timeout = 30 }
+  node_bundler = "esbuild"
+  external_node_modules = ["@sparticuz/chromium","puppeteer-core"]

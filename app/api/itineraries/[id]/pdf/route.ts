@@ -1,56 +1,42 @@
-import { NextRequest, NextResponse } from "next/server"
-import { renderToBuffer } from "@react-pdf/renderer"
-import { ConvexHttpClient } from "convex/browser"
-import { api } from "@/convex/_generated/api"
-import { PDFTemplate } from "@/components/pdf-template"
+import { NextRequest } from "next/server";
+import chromium from "@sparticuz/chromium";
+import * as url from "node:url";
 
-const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!)
+export const dynamic = "force-dynamic"; // ensure SSR
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
-  try {
-    // Fetch itinerary from Convex
-    const itinerary = await convex.query(api.itineraries.get, {
-      id: params.id as any, // ConvexAPI ID type
-    })
-
-    if (!itinerary) {
-      return NextResponse.json(
-        { error: "Itinerary not found" },
-        { status: 404 }
-      )
-    }
-
-    // Generate PDF buffer
-    const pdfBuffer = await renderToBuffer(
-      PDFTemplate({ 
-        itinerary: {
-          id: params.id,
-          ...itinerary,
-        }
-      })
-    )
-
-    // Create filename based on itinerary details
-    const firstSegment = itinerary.segments[0]
-    const displayId = (itinerary as any).humanId || params.id
-    const filename = `haske-itinerary-${firstSegment?.flightNumber || displayId}.pdf`
-
-    // Return PDF response
-    return new NextResponse(new Uint8Array(pdfBuffer), {
-      headers: {
-        "Content-Type": "application/pdf",
-        "Content-Disposition": `attachment; filename="${filename}"`,
-        "Content-Length": pdfBuffer.length.toString(),
-      },
-    })
-  } catch (error) {
-    console.error("PDF generation error:", error)
-    return NextResponse.json(
-      { error: "Failed to generate PDF" },
-      { status: 500 }
-    )
+async function launchBrowser() {
+  if (process.env.NETLIFY || process.env.VERCEL) {
+    const puppeteer = await import("puppeteer-core");
+    return puppeteer.launch({
+      args: chromium.args,
+      defaultViewport: chromium.defaultViewport,
+      executablePath: await chromium.executablePath(),
+      headless: true,
+    });
+  } else {
+    const puppeteer = await import("puppeteer");
+    return puppeteer.launch({ headless: true });
   }
+}
+
+export async function GET(req: NextRequest, { params }:{ params:{ id:string } }) {
+  const base = process.env.PUBLIC_BASE_URL!;
+  const target = new url.URL(`/itineraries/${params.id}/print`, base).toString();
+  const browser = await launchBrowser();
+  const page = await browser.newPage();
+  await page.goto(target, { waitUntil: "networkidle0" });
+  const pdf = await page.pdf({
+    format: "A4",
+    printBackground: true,
+    preferCSSPageSize: true,
+    margin: { top: "0mm", bottom: "0mm", left: "0mm", right: "0mm" },
+  });
+  await browser.close();
+  return new Response(pdf, {
+    headers: {
+      "Content-Type": "application/pdf",
+      "Content-Disposition": `inline; filename="Haske-Itinerary-${params.id}.pdf"`,
+      "Cache-Control": "no-store",
+    },
+  });
 }
