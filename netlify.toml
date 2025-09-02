@@ -13,7 +13,10 @@
   package = "@netlify/plugin-nextjs"
 
 [functions]
-  # Increase timeout for PDF generation
-  "*" = { timeout = 30 }
   node_bundler = "esbuild"
   external_node_modules = ["@sparticuz/chromium","puppeteer-core"]
+  included_files = [
+    "public/**"               # ensure CSS/fonts/logo are bundled for the function
+  ]
+  timeout = 26               # max allowed on Netlify
+  memory = 1536              # give Chromium room
