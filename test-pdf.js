@@ -9,10 +9,12 @@ const path = require('path');
 const ITINERARY_ID = process.argv[2] || 'TEST_ID';
 const BASE_URL = process.env.PUBLIC_BASE_URL || 'http://localhost:3000';
 const PDF_URL = `${BASE_URL}/api/itineraries/${ITINERARY_ID}/pdf`;
+const USE_REACT_PDF = process.env.FEATURE_REACT_PDF === 'true';
 
 console.log('🔍 Testing PDF generation...');
 console.log(`📋 Itinerary ID: ${ITINERARY_ID}`);
 console.log(`🌐 PDF URL: ${PDF_URL}`);
+console.log(`🎛️  Renderer: ${USE_REACT_PDF ? '@react-pdf (legacy)' : 'HTML→PDF (Puppeteer)'}`);
 console.log();
 
 console.log('✅ Visual checklist:');

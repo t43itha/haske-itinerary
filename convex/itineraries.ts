@@ -108,6 +108,25 @@ export const get = query({
   },
 });
 
+export const getById = query({
+  args: { id: v.id("itineraries") },
+  handler: async (ctx, { id }) => {
+    const itin = await ctx.db.get(id);
+    if (!itin) return null;
+
+    const [passengers, segments] = await Promise.all([
+      ctx.db.query("passengers").withIndex("by_itin", q => q.eq("itineraryId", id)).collect(),
+      ctx.db.query("segments").withIndex("by_itin", q => q.eq("itineraryId", id)).collect(),
+    ]);
+
+    segments.sort(
+      (a, b) => new Date(a.dep.dateTime).getTime() - new Date(b.dep.dateTime).getTime()
+    );
+
+    return { ...itin, _id: id, passengers, segments };
+  },
+});
+
 export const list = query({
   handler: async (ctx: any) => {
     return await ctx.db.query("itineraries").order("desc").collect();
