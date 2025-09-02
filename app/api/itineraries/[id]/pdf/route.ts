@@ -7,26 +7,26 @@ async function launchBrowser() {
   const isNetlify = Boolean(process.env.NETLIFY || process.env.VERCEL || process.env.AWS_REGION);
 
   if (isNetlify) {
-    // Configure chromium for serverless environment
-    chromium.setHeadlessMode = true;
-    chromium.setGraphicsMode = false;
-    
     const puppeteer = await import("puppeteer-core");
+    
+    // Configure chromium args for serverless environment
+    const args = [
+      ...chromium.args,
+      "--disable-gpu",
+      "--disable-dev-shm-usage",
+      "--disable-setuid-sandbox",
+      "--no-first-run",
+      "--no-sandbox",
+      "--no-zygote",
+      "--single-process",
+      "--font-render-hinting=none"
+    ];
+    
     return puppeteer.launch({
-      args: [
-        ...chromium.args,
-        "--disable-gpu",
-        "--disable-dev-shm-usage",
-        "--disable-setuid-sandbox",
-        "--no-first-run",
-        "--no-sandbox",
-        "--no-zygote",
-        "--single-process",
-        "--font-render-hinting=none"
-      ],
+      args,
       defaultViewport: { width: 1280, height: 800 },
       executablePath: await chromium.executablePath(),
-      headless: chromium.headless,
+      headless: true,
     });
   } else {
     const puppeteer = await import("puppeteer");
