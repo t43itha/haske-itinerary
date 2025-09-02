@@ -34,7 +34,7 @@ async function generateReactPDF(params: { id: string }) {
     // Legacy embedded passengers already match
     if (src.length && src[0]?.name) return src as any;
     // Normalized passengers
-    const mapType = (t?: string) => (t === 'CHD' ? 'child' : t === 'INF' ? 'infant' : 'adult') as const;
+    const mapType = (t?: string): "adult" | "child" | "infant" => (t === 'CHD' ? 'child' : t === 'INF' ? 'infant' : 'adult');
     return (src as any[]).map(p => ({ name: p.fullName || p.name || 'Passenger', type: mapType(p.type) }));
   }
 
