@@ -81,26 +81,13 @@ export function normalizeTicketToItinerary(
   options: NormalizationOptions = {}
 ): NormalizedItinerary {
   
-  // Log raw segments before any processing
-  console.log('Raw segments from parser:', parsedTicket.segments.map(s => ({
-    flight: s.marketingFlightNo,
-    depTime: s.dep.timeLocal,
-    depDate: s.dep.date,
-    arrTime: s.arr.timeLocal,
-    arrDate: s.arr.date
-  })));
-  
   // Apply conservative date inference logic only for missing dates
-  console.log('Applying conservative date inference to segments...');
   const inferredSegments = inferSegmentDates(parsedTicket.segments);
   
   // Validate the date logic but don't fail the process
   const validation = validateSegmentDates(inferredSegments);
   if (!validation.isValid) {
-    console.warn('Date validation found potential issues (not blocking):', validation.errors);
-    console.log('Continuing with extraction despite date validation warnings...');
-  } else {
-    console.log('Date validation passed for all segments');
+    console.warn('Date validation found potential issues:', validation.errors);
   }
   
   const normalizedItinerary: NormalizedItinerary = {
@@ -224,19 +211,13 @@ function normalizeSegments(
 
 function formatDateTime(date?: string, time?: string): string {
   if (!date && !time) {
-    console.warn('No date or time provided, using current timestamp');
     return new Date().toISOString();
   }
 
   try {
     if (date && time) {
-      // Try to parse the date and time, but trust the extracted format
       const dateStr = parseDate(date);
       const timeStr = parseTime(time);
-      
-      // Log what we're working with
-      console.log(`formatDateTime input: date="${date}" time="${time}"`);
-      console.log(`formatDateTime parsed: dateStr="${dateStr}" timeStr="${timeStr}"`);
       
       if (dateStr && timeStr) {
         // For military time (HHMM), convert to HH:MM for ISO format
@@ -244,13 +225,8 @@ function formatDateTime(date?: string, time?: string): string {
         if (/^\d{4}$/.test(timeStr)) {
           formattedTime = `${timeStr.substring(0, 2)}:${timeStr.substring(2, 4)}`;
         }
-        const result = `${dateStr}T${formattedTime}:00.000Z`;
-        console.log(`formatDateTime result: ${result}`);
-        return result;
+        return `${dateStr}T${formattedTime}:00.000Z`;
       }
-      
-      // If parsing fails, log but try alternate approaches
-      console.warn(`Date/time parsing had issues, trying alternate parsing for: ${date} ${time}`);
     }
     
     if (date) {
@@ -258,7 +234,6 @@ function formatDateTime(date?: string, time?: string): string {
       if (dateStr) {
         return `${dateStr}T00:00:00.000Z`;
       }
-      console.warn(`Could not parse date: "${date}"`);
     }
     
     if (time) {
@@ -272,27 +247,21 @@ function formatDateTime(date?: string, time?: string): string {
         }
         return `${today}T${formattedTime}:00.000Z`;
       }
-      console.warn(`Could not parse time: "${time}"`);
     }
   } catch (error) {
     console.warn('Failed to parse date/time:', { date, time }, error);
   }
 
-  // Only use fallback when absolutely necessary and log clearly
-  console.error(`FALLBACK: Using current time because could not parse date: "${date}", time: "${time}"`);
   return new Date().toISOString();
 }
 
 function parseDate(dateStr: string): string | null {
-  // Handle various date formats with better logging
   if (!dateStr) return null;
   
   const cleanDate = dateStr.trim();
-  console.log(`Parsing date: "${cleanDate}"`);
   
   // Try ISO format first
   if (/^\d{4}-\d{2}-\d{2}$/.test(cleanDate)) {
-    console.log(`Recognized ISO format: ${cleanDate}`);
     return cleanDate;
   }
   
@@ -303,9 +272,7 @@ function parseDate(dateStr: string): string | null {
     // Assume DD/MM/YYYY (European format)
     const day = part1.padStart(2, '0');
     const month = part2.padStart(2, '0');
-    const result = `${year}-${month}-${day}`;
-    console.log(`Parsed slash format: ${cleanDate} -> ${result}`);
-    return result;
+    return `${year}-${month}-${day}`;
   }
   
   // Try "DD MMM YYYY" format (common in airline tickets)
@@ -324,11 +291,7 @@ function parseDate(dateStr: string): string | null {
     const [, day, monthName, year] = monthMatch;
     const monthNum = monthNames[monthName.toLowerCase() as keyof typeof monthNames];
     if (monthNum) {
-      const result = `${year}-${monthNum}-${day.padStart(2, '0')}`;
-      console.log(`Parsed month format: ${cleanDate} -> ${result}`);
-      return result;
-    } else {
-      console.warn(`Unrecognized month name: ${monthName}`);
+      return `${year}-${monthNum}-${day.padStart(2, '0')}`;
     }
   }
   
@@ -338,9 +301,7 @@ function parseDate(dateStr: string): string | null {
     const [, monthName, day, year] = usStyleMatch;
     const monthNum = monthNames[monthName.toLowerCase() as keyof typeof monthNames];
     if (monthNum) {
-      const result = `${year}-${monthNum}-${day.padStart(2, '0')}`;
-      console.log(`Parsed US month format: ${cleanDate} -> ${result}`);
-      return result;
+      return `${year}-${monthNum}-${day.padStart(2, '0')}`;
     }
   }
   
@@ -348,25 +309,19 @@ function parseDate(dateStr: string): string | null {
   try {
     const parsed = new Date(cleanDate);
     if (!isNaN(parsed.getTime())) {
-      const result = parsed.toISOString().split('T')[0];
-      console.log(`Parsed with Date constructor: ${cleanDate} -> ${result}`);
-      return result;
+      return parsed.toISOString().split('T')[0];
     }
   } catch (error) {
-    console.warn('Date constructor failed for:', cleanDate, error);
+    // Silent fallback
   }
   
-  // Return null if parsing completely failed
-  console.warn('Unable to parse date string:', cleanDate);
   return null;
 }
 
 function parseTime(timeStr: string): string | null {
-  // Handle various time formats with better logging, preserving military format
   if (!timeStr) return null;
   
   const cleanTime = timeStr.trim();
-  console.log(`Parsing time: "${cleanTime}"`);
   
   // IMPORTANT: Preserve military time format (HHMM) without colons if that's how it was extracted
   if (/^\d{4}$/.test(cleanTime)) {
@@ -375,18 +330,14 @@ function parseTime(timeStr: string): string | null {
     
     // Validate it's a valid time
     if (hours >= 0 && hours <= 23 && minutes >= 0 && minutes <= 59) {
-      // Return in military format to preserve original
       return cleanTime; // Keep as HHMM
     }
   }
   
-  // Handle 24-hour format with colon (convert to military if needed for consistency)
+  // Handle 24-hour format with colon
   if (/^\d{1,2}:\d{2}$/.test(cleanTime)) {
     const [hours, minutes] = cleanTime.split(':');
-    // For consistency, we could convert to military format, but let's keep colon for now
-    const result = `${hours.padStart(2, '0')}:${minutes}`;
-    console.log(`Parsed 24-hour format: ${cleanTime} -> ${result}`);
-    return result;
+    return `${hours.padStart(2, '0')}:${minutes}`;
   }
   
   // Handle 12-hour format with space
@@ -401,10 +352,7 @@ function parseTime(timeStr: string): string | null {
       hours = 0;
     }
     
-    // Convert to military format for consistency
-    const result = `${hours.toString().padStart(2, '0')}${minutes}`;
-    console.log(`Parsed 12-hour format to military: ${cleanTime} -> ${result}`);
-    return result;
+    return `${hours.toString().padStart(2, '0')}${minutes}`;
   }
   
   // Handle 12-hour format without space (e.g., "10:30PM")
@@ -419,10 +367,7 @@ function parseTime(timeStr: string): string | null {
       hours = 0;
     }
     
-    // Convert to military format for consistency
-    const result = `${hours.toString().padStart(2, '0')}${minutes}`;
-    console.log(`Parsed 12-hour format (no space) to military: ${cleanTime} -> ${result}`);
-    return result;
+    return `${hours.toString().padStart(2, '0')}${minutes}`;
   }
   
   // Handle time with only hours (e.g., "14" -> "1400")
@@ -430,14 +375,10 @@ function parseTime(timeStr: string): string | null {
   if (hoursOnlyMatch) {
     const hours = parseInt(cleanTime, 10);
     if (hours >= 0 && hours <= 23) {
-      const result = `${hours.toString().padStart(2, '0')}00`;
-      console.log(`Parsed hours only to military: ${cleanTime} -> ${result}`);
-      return result;
+      return `${hours.toString().padStart(2, '0')}00`;
     }
   }
   
-  // Return null if parsing failed
-  console.warn('Unable to parse time string:', cleanTime);
   return null;
 }
 

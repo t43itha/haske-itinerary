@@ -7,7 +7,7 @@ async function generateHumanId(ctx: any): Promise<string> {
     const code = `HGT${Math.floor(10000 + Math.random() * 90000)}`; // HGT12345
     const existing = await ctx.db
       .query("itineraries")
-      .withIndex("by_humanId", (q: any) => q.eq("humanId", code))
+      .filter((q: any) => q.eq(q.field("humanId"), code))
       .collect();
     if (existing.length === 0) return code;
   }

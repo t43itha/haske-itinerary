@@ -12,6 +12,7 @@ import { ParsedTicket } from "@/lib/types"
 import { normalizeTicketToItinerary, type NormalizedItinerary } from "@/lib/normalizeTicket"
 import { createItineraryFromParsedTicket } from "@/lib/actions"
 import { formatFlightTimeOnly } from "@/lib/utils/timeFormatting"
+import { ErrorBoundary } from "@/components/error-boundary"
 
 interface FieldChange {
   field: string;
@@ -226,13 +227,8 @@ export default function ReviewPage() {
       // Get selected field IDs for optional field filtering in the future
       const selectedFieldIds = changesToApply.map(change => change.field)
 
-      console.log('Applying changes:', changesToApply.length)
-      console.log('Normalized itinerary:', normalized)
-
       // Save to Convex database - server action returns the ID
       const itineraryId = await createItineraryFromParsedTicket(normalized, selectedFieldIds)
-      
-      console.log('Itinerary saved, redirecting to:', `/confirmation/${itineraryId}`)
       
       // Clear session storage since we've successfully saved
       sessionStorage.removeItem('parsedTicketData')
@@ -241,6 +237,7 @@ export default function ReviewPage() {
       router.push(`/confirmation/${itineraryId}`)
       
     } catch (err) {
+      console.error('Error applying changes:', err)
       setError(err instanceof Error ? err.message : 'Failed to apply changes')
     } finally {
       setIsApplying(false)
@@ -283,8 +280,9 @@ export default function ReviewPage() {
   }, {} as Record<string, FieldChange[]>)
 
   return (
-    <div className="px-4 sm:px-6 lg:px-8 pb-8">
-      <div className="max-w-6xl mx-auto">
+    <ErrorBoundary>
+      <div className="px-4 sm:px-6 lg:px-8 pb-8">
+        <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="mb-6">
           <Button
@@ -442,7 +440,8 @@ export default function ReviewPage() {
             )}
           </Button>
         </div>
+        </div>
       </div>
-    </div>
+    </ErrorBoundary>
   )
 }
