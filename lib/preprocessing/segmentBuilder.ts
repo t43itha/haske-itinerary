@@ -82,7 +82,7 @@ export function stitchWaypointsIntoLegs(
 }
 
 /**
- * Convert legs to ParsedTicket segments format
+ * Convert legs to ParsedTicket segments format with layover-aware date handling
  */
 export function convertLegsToParsedSegments(
   legs: FlightLeg[],
@@ -90,20 +90,53 @@ export function convertLegsToParsedSegments(
 ): ParsedTicket['segments'] {
   const segments: ParsedTicket['segments'] = [];
   let currentDate = new Date(baseDate);
+  let lastArrivalDateTime: Date | null = null;
   
-  for (const leg of legs) {
-    // Calculate dates based on isNextDay flags
+  for (let i = 0; i < legs.length; i++) {
+    const leg = legs[i];
+    
+    // Calculate departure date considering layover from previous segment
     const depDate = new Date(currentDate);
-    const arrDate = new Date(currentDate);
+    
+    if (lastArrivalDateTime && i > 0) {
+      // For connecting flights, check layover duration
+      const [depHour, depMin] = leg.departure.time.split(':').map(Number);
+      
+      // Create departure datetime for comparison
+      const testDepTime = new Date(currentDate);
+      testDepTime.setHours(depHour, depMin, 0, 0);
+      
+      // Calculate layover in milliseconds
+      const layoverMs = testDepTime.getTime() - lastArrivalDateTime.getTime();
+      const layoverHours = layoverMs / (1000 * 60 * 60);
+      
+      console.log(`Segment ${i}: Layover ${layoverHours.toFixed(1)} hours`);
+      
+      // If departure is before last arrival or layover exceeds 20 hours, adjust date
+      if (layoverMs < 0) {
+        // Departure before arrival means next day
+        depDate.setDate(depDate.getDate() + 1);
+        currentDate = new Date(depDate);
+        console.log('Adjusted departure to next day (negative layover)');
+      } else if (layoverHours > 20) {
+        // Long layover likely means next day departure
+        depDate.setDate(depDate.getDate() + 1);
+        currentDate = new Date(depDate);
+        console.log(`Long layover detected (${layoverHours.toFixed(1)}h), moving to next day`);
+      }
+    }
+    
+    // If departure is explicitly marked as next day
+    if (leg.departure.isNextDay) {
+      depDate.setDate(depDate.getDate() + 1);
+      currentDate = new Date(depDate);
+    }
+    
+    // Calculate arrival date
+    const arrDate = new Date(depDate);
     
     // If arrival is next day, increment date
     if (leg.arrival.isNextDay) {
-      arrDate.setDate(arrDate.getDate() + 1);
-    }
-    
-    // If departure is also marked as next day (for subsequent legs)
-    if (leg.departure.isNextDay) {
-      depDate.setDate(depDate.getDate() + 1);
       arrDate.setDate(arrDate.getDate() + 1);
     }
     
@@ -125,10 +158,15 @@ export function convertLegsToParsedSegments(
       }
     };
     
+    // Store last arrival for layover calculation
+    const [arrHour, arrMin] = leg.arrival.time.split(':').map(Number);
+    lastArrivalDateTime = new Date(arrDate);
+    lastArrivalDateTime.setHours(arrHour, arrMin, 0, 0);
+    
     segments.push(segment);
     
-    // Update current date for next segment
-    currentDate = arrDate;
+    // Update current date to arrival date for next segment
+    currentDate = new Date(arrDate);
   }
   
   return segments;
@@ -209,6 +247,34 @@ export function validateSegments(segments: ParsedTicket['segments']): {
       if (layoverMins < 30) {
         errors.push(`Segment ${i + 1}: Layover too short (${Math.round(layoverMins)} mins)`);
       }
+    }
+  }
+  
+  // Additional validation for chronological order and realistic layovers
+  for (let i = 1; i < segments.length; i++) {
+    const prevSegment = segments[i - 1];
+    const currSegment = segments[i];
+    
+    try {
+      const prevArrTime = new Date(`${prevSegment.arr.date} ${prevSegment.arr.timeLocal}`);
+      const currDepTime = new Date(`${currSegment.dep.date} ${currSegment.dep.timeLocal}`);
+      
+      if (prevArrTime.getTime() > currDepTime.getTime()) {
+        errors.push(`Segment ${i + 1}: Departure (${currSegment.dep.date} ${currSegment.dep.timeLocal}) before previous arrival (${prevSegment.arr.date} ${prevSegment.arr.timeLocal})`);
+      }
+      
+      // Check for realistic layover duration
+      const layoverMs = currDepTime.getTime() - prevArrTime.getTime();
+      const layoverHours = layoverMs / (1000 * 60 * 60);
+      
+      if (layoverHours < 0.5) {
+        errors.push(`Segment ${i + 1}: Unrealistically short layover (${layoverHours.toFixed(1)} hours)`);
+      } else if (layoverHours > 48) {
+        errors.push(`Segment ${i + 1}: Unusually long layover (${layoverHours.toFixed(1)} hours) - verify dates`);
+      }
+      
+    } catch (dateError) {
+      errors.push(`Segment ${i + 1}: Invalid date/time format for chronological validation`);
     }
   }
   

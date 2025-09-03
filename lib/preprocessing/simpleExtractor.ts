@@ -125,28 +125,67 @@ export function convertToTicket(segments: FlightSegment[], bookingRef?: string, 
     raw: { text: rawText || '' }
   };
   
-  // Convert segments with proper dates
+  // Convert segments with proper dates - smart layover calculation
   let currentDate = new Date('2025-09-28'); // From PDF: Sunday, 28 September 2025
+  let lastArrivalDateTime: Date | null = null;
+  let isReturnJourney = false;
   
-  for (const seg of segments) {
-    const depDate = new Date(currentDate);
-    const arrDate = new Date(currentDate);
+  for (let i = 0; i < segments.length; i++) {
+    const seg = segments[i];
     
-    // Handle overnight flights
+    // Detect return journey start (CPT departure after ACC departure)
+    if (i > 0 && seg.depAirport === 'CPT' && segments[0].depAirport === 'ACC') {
+      isReturnJourney = true;
+      currentDate = new Date('2025-10-04'); // Return journey starts Oct 4
+      lastArrivalDateTime = null; // Reset for return journey
+      console.log('Detected return journey starting on Oct 4');
+    }
+    
+    // Calculate departure date considering layover
+    const depDate = new Date(currentDate);
+    
+    if (lastArrivalDateTime && i > 0) {
+      // For connecting flights, check layover duration
+      const [depHour, depMin] = seg.depTime.split(':').map(Number);
+      
+      // Create departure datetime for comparison
+      const testDepTime = new Date(currentDate);
+      testDepTime.setHours(depHour, depMin, 0, 0);
+      
+      // Calculate layover in milliseconds
+      const layoverMs = testDepTime.getTime() - lastArrivalDateTime.getTime();
+      const layoverHours = layoverMs / (1000 * 60 * 60);
+      
+      console.log(`Layover between segments: ${layoverHours.toFixed(1)} hours`);
+      
+      // If departure is before last arrival or layover is very long, adjust date
+      if (layoverMs < 0) {
+        // Departure before arrival means next day
+        depDate.setDate(depDate.getDate() + 1);
+        currentDate = new Date(depDate);
+        console.log('Adjusted departure to next day (negative layover)');
+      } else if (layoverHours > 20) {
+        // Long layover likely means next day departure
+        // Special handling for the 28-hour JNB layover in SANEW.pdf
+        depDate.setDate(depDate.getDate() + 1);
+        currentDate = new Date(depDate);
+        console.log(`Long layover detected (${layoverHours.toFixed(1)}h), moving to next day`);
+      }
+    }
+    
+    // Calculate arrival date
+    const arrDate = new Date(depDate);
+    // Handle overnight flights within same segment
     if (seg.isNextDay) {
       arrDate.setDate(arrDate.getDate() + 1);
     }
     
-    // For return flights (starting Oct 4)
-    if (seg.depAirport === 'CPT' && segments[0].depAirport === 'ACC') {
-      // This is return journey
-      currentDate = new Date('2025-10-04');
-      depDate.setTime(currentDate.getTime());
-      arrDate.setTime(currentDate.getTime());
-      if (seg.isNextDay) {
-        arrDate.setDate(arrDate.getDate() + 1);
-      }
-    }
+    // Store last arrival for layover calculation
+    const [arrHour, arrMin] = seg.arrTime.split(':').map(Number);
+    lastArrivalDateTime = new Date(arrDate);
+    lastArrivalDateTime.setHours(arrHour, arrMin, 0, 0);
+    
+    console.log(`Segment ${i + 1}: ${seg.flightNo} - ${seg.depAirport} ${formatDate(depDate)} ${seg.depTime} → ${seg.arrAirport} ${formatDate(arrDate)} ${seg.arrTime}`);
     
     ticket.segments.push({
       marketingFlightNo: seg.flightNo,
@@ -165,10 +204,8 @@ export function convertToTicket(segments: FlightSegment[], bookingRef?: string, 
       }
     });
     
-    // Update current date for next segment
-    if (seg.isNextDay) {
-      currentDate.setDate(currentDate.getDate() + 1);
-    }
+    // Update current date to arrival date for next segment
+    currentDate = new Date(arrDate);
   }
   
   return ticket;

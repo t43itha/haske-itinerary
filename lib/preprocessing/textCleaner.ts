@@ -38,21 +38,35 @@ export function preprocessPDFText(rawText: string): string {
 }
 
 /**
- * Normalize various time formats to HH:MM
+ * Normalize various time formats to 24hr HH:MM format
  */
 function normalizeTimeFormats(text: string): string {
-  // Convert HHMM to HH:MM (e.g., "2030" → "20:30")
+  // Convert HHMM to HH:MM (e.g., "2030" → "20:30", "0425" → "04:25")
   text = text.replace(/\b(\d{2})(\d{2})\b/g, (match, h, m) => {
     const hour = parseInt(h);
     const min = parseInt(m);
     if (hour >= 0 && hour <= 23 && min >= 0 && min <= 59) {
-      return `${h}:${m}`;
+      return `${h.padStart(2, '0')}:${m}`;
     }
     return match; // Not a time, return as-is
   });
   
   // Ensure all times have leading zeros (e.g., "4:25" → "04:25")
   text = text.replace(/\b(\d):(\d{2})\b/g, '0$1:$2');
+  
+  // Convert 12hr to 24hr format if AM/PM is present
+  text = text.replace(/(\d{1,2}):(\d{2})\s*(AM|PM)/gi, (match, h, m, period) => {
+    let hour = parseInt(h);
+    const upperPeriod = period.toUpperCase();
+    
+    if (upperPeriod === 'PM' && hour !== 12) {
+      hour += 12;
+    } else if (upperPeriod === 'AM' && hour === 12) {
+      hour = 0;
+    }
+    
+    return `${hour.toString().padStart(2, '0')}:${m}`;
+  });
   
   return text;
 }

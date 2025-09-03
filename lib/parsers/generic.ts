@@ -239,7 +239,7 @@ function normalizeIataCode(iata?: string): string | undefined {
 function normalizeTime(time?: string): string | undefined {
   if (!time) return undefined;
   
-  // Handle various time formats and convert to HH:MM
+  // Handle various time formats and convert to 24hr HH:MM
   const timePattern = /(\d{1,2})[:\.]?(\d{2})?\s*(AM|PM)?/i;
   const match = time.match(timePattern);
   
@@ -247,17 +247,42 @@ function normalizeTime(time?: string): string | undefined {
     let [, hours, minutes = '00', period] = match;
     let hour = parseInt(hours, 10);
     
+    // Convert 12hr to 24hr format
     if (period) {
-      if (period.toUpperCase() === 'PM' && hour !== 12) {
+      const upperPeriod = period.toUpperCase();
+      if (upperPeriod === 'PM' && hour !== 12) {
         hour += 12;
-      } else if (period.toUpperCase() === 'AM' && hour === 12) {
+      } else if (upperPeriod === 'AM' && hour === 12) {
         hour = 0;
       }
     }
     
-    return `${hour.toString().padStart(2, '0')}:${minutes}`;
+    // Validate 24hr format
+    if (hour < 0 || hour > 23) {
+      console.warn(`Invalid hour in time: ${time}`);
+      return time; // Return original if invalid
+    }
+    
+    const min = parseInt(minutes, 10);
+    if (min < 0 || min > 59) {
+      console.warn(`Invalid minutes in time: ${time}`);
+      return time; // Return original if invalid
+    }
+    
+    return `${hour.toString().padStart(2, '0')}:${minutes.padStart(2, '0')}`;
   }
   
+  // Validate existing HH:MM format
+  const validTimePattern = /^([0-2]\d):([0-5]\d)$/;
+  const validMatch = time.match(validTimePattern);
+  if (validMatch) {
+    const hour = parseInt(validMatch[1]);
+    if (hour <= 23) {
+      return time; // Already valid 24hr format
+    }
+  }
+  
+  console.warn(`Could not normalize time: ${time}`);
   return time;
 }
 

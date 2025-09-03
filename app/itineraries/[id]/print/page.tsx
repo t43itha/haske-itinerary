@@ -89,7 +89,6 @@ export default async function PrintItinerary({ params }:{ params:{ id:string }})
                 <img src="/haske-logo.png" alt="Haske Global Travel" width={140} height={36} style={{ marginBottom: "8px" }} />
                 <h1 className="brand-title" style={{ margin: 0 }}>Haske Itinerary</h1>
                 <div className="brand-header__contacts">
-                  {AGENCY.consultant}<br/>
                   {AGENCY.name}<br/>
                   {AGENCY.website} · {AGENCY.email}<br/>
                   {AGENCY.phoneAlt}<br/>
