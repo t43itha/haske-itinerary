@@ -222,7 +222,68 @@ function groupSegments(segs:any[]){
   if(!segs?.length) return [null,null];
   const firstOrigin = segs[0]?.dep?.iata; 
   const finalDest = segs[segs.length-1]?.arr?.iata;
-  let split = segs.findIndex((s:any)=> s.arr?.iata===firstOrigin || s.dep?.iata===finalDest);
-  if (split<=0) split = Math.floor(segs.length/2);
-  return [segs.slice(0, split+1), segs.slice(split+1)];
+  
+  console.log(`Grouping segments: ${segs.length} segments, ${firstOrigin} → ${finalDest}`);
+  
+  // For round trips (returning to origin)
+  if(firstOrigin === finalDest) {
+    console.log('Detected round trip, using smart grouping');
+    
+    // Method 1: Find largest date gap between segments (indicates stay at destination)
+    let maxGapIndex = -1;
+    let maxGap = 0;
+    
+    for(let i = 0; i < segs.length - 1; i++) {
+      const currArrival = new Date(segs[i].arr?.dateTime || 0);
+      const nextDeparture = new Date(segs[i+1].dep?.dateTime || 0);
+      const gap = nextDeparture.getTime() - currArrival.getTime();
+      const gapHours = gap / (1000 * 60 * 60);
+      
+      console.log(`Gap between segment ${i} and ${i+1}: ${gapHours.toFixed(1)} hours`);
+      
+      if(gap > maxGap) {
+        maxGap = gap;
+        maxGapIndex = i;
+      }
+    }
+    
+    // Use date gap method if significant gap found (>12 hours)
+    if(maxGap > 12 * 60 * 60 * 1000 && maxGapIndex >= 0) {
+      const maxGapHours = maxGap / (1000 * 60 * 60);
+      console.log(`Using date gap split after segment ${maxGapIndex} (${maxGapHours.toFixed(1)} hour gap)`);
+      return [segs.slice(0, maxGapIndex + 1), segs.slice(maxGapIndex + 1)];
+    }
+    
+    // Method 2: Find last departure from origin city
+    let lastDepFromOrigin = -1;
+    for(let i = 0; i < segs.length; i++) {
+      if(segs[i].dep?.iata === firstOrigin) {
+        lastDepFromOrigin = i;
+      }
+    }
+    
+    if(lastDepFromOrigin >= 0) {
+      console.log(`Using last departure from origin split after segment ${lastDepFromOrigin}`);
+      return [segs.slice(0, lastDepFromOrigin + 1), segs.slice(lastDepFromOrigin + 1)];
+    }
+  }
+  
+  // For open-jaw trips, find when heading to final destination
+  let split = segs.findIndex((s:any, i:number) => i > 0 && s.dep?.iata === finalDest);
+  if(split > 0) {
+    console.log(`Using open-jaw split at segment ${split}`);
+    return [segs.slice(0, split), segs.slice(split)];
+  }
+  
+  // Method 3: Try original logic but more refined
+  split = segs.findIndex((s:any, i:number) => i > 0 && s.arr?.iata === firstOrigin);
+  if(split > 0) {
+    console.log(`Using arrival at origin split at segment ${split}`);
+    return [segs.slice(0, split), segs.slice(split)];
+  }
+  
+  // Final fallback: split in middle
+  split = Math.floor(segs.length / 2);
+  console.log(`Using middle split at segment ${split}`);
+  return [segs.slice(0, split), segs.slice(split)];
 }
