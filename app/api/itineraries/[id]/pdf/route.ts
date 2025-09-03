@@ -71,8 +71,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
         headerTemplate: `<div></div>`,
         footerTemplate: `
           <div style="font-size:8px;color:#666;width:100%;padding:8px 14mm;
-                      display:flex;justify-content:space-between;align-items:center;">
-            <div>This itinerary is informational and not a travel document.</div>
+                      display:flex;justify-content:flex-end;align-items:center;">
             <div><span class="pageNumber"></span> / <span class="totalPages"></span></div>
           </div>`,
         margin: { top: "18mm", right: "14mm", bottom: "60px", left: "14mm" },
