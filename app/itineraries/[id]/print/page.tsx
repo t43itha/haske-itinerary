@@ -81,13 +81,13 @@ export default async function PrintItinerary({ params }:{ params:{ id:string }})
           <link rel="stylesheet" href="/print.css" />
         </head>
         <body>
-          <h1 className="document-title" style={{ textAlign: "center", margin: "0 0 16px 0", fontSize: "20pt", color: "#0A1628" }}>Haske Itinerary</h1>
           <div className="page">
             {/* Header bar */}
             <div className="brand-header" style={{ display: "flex", alignItems: "flex-end", gap: "12px" }}>
-              {/* LEFT: logo above company info (left aligned) */}
+              {/* LEFT: logo above title and contact (left aligned) */}
               <div style={{ textAlign: "left", flex: "1 1 auto" }}>
                 <img src="/haske-logo.png" alt="Haske Global Travel" width={140} height={36} style={{ marginBottom: "8px" }} />
+                <h1 className="brand-title" style={{ margin: 0 }}>Haske Itinerary</h1>
                 <div className="brand-header__contacts">
                   {AGENCY.consultant}<br/>
                   {AGENCY.name}<br/>
